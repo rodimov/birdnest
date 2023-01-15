@@ -1,0 +1,105 @@
+variables:
+  IMAGE_NAME: rodimov/birdnest
+  IMAGE_TAG: 1.0-dev
+
+stages:
+  - test
+  - build
+  - deploy
+
+run_tests:
+  stage: test
+  image: docker:20.10.21-alpine3.16
+  services:
+    - name: docker:20.10.21-dind
+      alias: docker
+  variables:
+    DOCKER_TLS_CERTDIR: /certs
+    DOCKER_CERT_PATH: /certs/client
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_VERIFY: 1
+    TEST_DBHOST: docker
+    TEST_DBPORT: 5432
+    TEST_DBUSER: postgres
+    TEST_DBPWD: postgres
+    TEST_DBNAME: postgres
+    TEST_DBDIALECT: postgres
+    TEST_TCSKIP: 0
+    TEST_TCIMAGE: postgres:15
+  before_script:
+    - apk update
+    - apk upgrade
+    - apk add curl
+    - apk add build-base
+    - curl -L -O https://go.dev/dl/go1.18.8.linux-amd64.tar.gz
+    - tar xf go1.18.8.linux-amd64.tar.gz
+    - chown -R root:root ./go
+    - mv go /usr/local
+    - export GOPATH=$HOME
+    - export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
+    - go install github.com/swaggo/swag/cmd/swag@latest
+    - go install github.com/golang/mock/mockgen@v1.6.0
+  script:
+    - swag init
+    - go generate ./...
+    - go mod tidy
+    - go test ./... -tags unit_test
+  rules:
+    - if: '($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop") || ($CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "develop")'
+
+build_image:
+  stage: build
+  image: docker:20.10.21-alpine3.16
+  services:
+    - name: docker:20.10.21-dind
+      alias: docker
+  variables:
+    DBHOST: 127.0.0.1
+    DBPORT: 5432
+    DBUSER: postgres
+    DBPWD: postgres
+    DBNAME: postgres
+    DBDIALECT: postgres
+    LOGSTORAGE: ./birdnest.log
+    TELEGRAMTIMEOUTINSEC: 50
+    HOSTPORT: 8080
+  before_script:
+    - docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PWD
+  script:
+    - >
+      docker build 
+      --build-arg DBHOST
+      --build-arg DBPORT
+      --build-arg DBUSER
+      --build-arg DBPWD
+      --build-arg DBNAME
+      --build-arg DBDIALECT
+      --build-arg LOGSTORAGE
+      --build-arg TELEGRAMTOKEN
+      --build-arg TELEGRAMTIMEOUTINSEC
+      --build-arg SWAGHOST=${SERVER_IP}:${HOSTPORT}
+      --build-arg HOSTPORT
+      -t $IMAGE_NAME:$IMAGE_TAG .
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "develop"'
+
+deploy:
+  stage: deploy
+  image: docker:20.10.21-alpine3.16
+  before_script:
+    - chmod 400 $ID_RSA
+  script:
+    - ssh -o StrictHostKeyChecking=no -i $ID_RSA $SERVER_USER@$SERVER_IP "
+      docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PWD &&
+      docker update --restart-policy no birdnest || true &&
+      docker stop birdnest || true && docker rm birdnest || true &&
+      docker pull $IMAGE_NAME:$IMAGE_TAG &&
+      docker network create --subnet 172.20.0.0/16 birdnest-net || true &&
+      docker run --name birdnest-db --restart always --net birdnest-net --ip 172.20.0.5 -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=postgres -d postgres:15 || true &&
+      docker run --name birdnest --restart always --network birdnest-net -e DBHOST=172.20.0.5 -p 8080:8080 -d $IMAGE_NAME:$IMAGE_TAG"
+    - sleep 30
+    - apk update && apk add curl
+    - curl --fail-with-body http://$SERVER_IP:8080/swagger/index.html
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "develop"'
