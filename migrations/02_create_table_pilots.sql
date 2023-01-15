@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS pilots (
     registration_time TIMESTAMP,
     drone_id VARCHAR(256),
     CONSTRAINT fk_pilot_drone
-        FOREIGN KEY(drone_id)
-            REFERENCES drones(id)
+        FOREIGN KEY (drone_id)
+        REFERENCES drones(id)
+        ON DELETE CASCADE
 );

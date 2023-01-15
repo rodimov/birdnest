@@ -11,6 +11,8 @@ type UseCase interface {
 	GetById(context context.Context, id string) (*model.Drone, error)
 	IsRemoved(context context.Context, id string) (bool, error)
 	DeleteById(context context.Context, id string) (*model.Drone, error)
+	DeletePermanentlyById(context context.Context, id string) (*model.Drone, error)
+	GetAllDeleted(context context.Context) ([]*model.Drone, error)
 }
 
 type Repository interface {
@@ -21,4 +23,6 @@ type Repository interface {
 	GetAll(context context.Context) ([]*model.Drone, error)
 	GetById(context context.Context, id string) (*model.Drone, error)
 	DeleteById(context context.Context, id string) (*model.Drone, error)
+	DeletePermanentlyById(context context.Context, id string) (*model.Drone, error)
+	GetAllDeleted(context context.Context) ([]*model.Drone, error)
 }

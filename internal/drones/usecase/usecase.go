@@ -53,3 +53,11 @@ func (u *usecase) IsRemoved(context context.Context, id string) (bool, error) {
 func (u *usecase) DeleteById(context context.Context, id string) (*model.Drone, error) {
 	return u.Repository.DeleteById(context, id)
 }
+
+func (u *usecase) DeletePermanentlyById(context context.Context, id string) (*model.Drone, error) {
+	return u.Repository.DeletePermanentlyById(context, id)
+}
+
+func (u *usecase) GetAllDeleted(context context.Context) ([]*model.Drone, error) {
+	return u.Repository.GetAllDeleted(context)
+}

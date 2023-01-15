@@ -79,7 +79,9 @@ func NewUseCase(dronesUseCase dronesPackage.UseCase,
 
 func (u *usecase) StartScheduler() error {
 	go u.hardRemoveOldDrones()
+	go u.permanentlyDeleteGarbage()
 	go u.updateDronesList()
+
 	return nil
 }
 
@@ -320,6 +322,40 @@ func (u *usecase) hardRemoveOldDrones() {
 					logger.AppLogger.Error(err.Error())
 				} else {
 					logger.AppLogger.Info("Drone with id = " + drone.ID + " was hard removed")
+				}
+			}
+		}
+		u.mutex.Unlock()
+
+		time.Sleep(time.Minute * time.Duration(u.ndzClearTimeMin))
+	}
+}
+
+func (u *usecase) permanentlyDeleteGarbage() {
+	for {
+		u.mutex.Lock()
+		ctx := context.Background()
+		drones, err := u.dronesUseCase.GetAllDeleted(ctx)
+
+		if err != nil {
+			u.mutex.Unlock()
+			logger.AppLogger.Error("Can't get deleted drones list to clear garbage")
+			time.Sleep(time.Minute * time.Duration(2))
+			continue
+		}
+
+		for _, drone := range drones {
+			timeToPermanentRemove := drone.DeletedAt.Time.Add(time.Minute * time.Duration(2*u.ndzClearTimeMin))
+			now := time.Now()
+			now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(),
+				now.Minute(), now.Day(), now.Nanosecond(), time.UTC)
+
+			if timeToPermanentRemove.Before(now) {
+				_, err := u.dronesUseCase.DeletePermanentlyById(ctx, drone.ID)
+
+				if err != nil {
+					logger.AppLogger.Error("Can't delete permanently drone with id = " + drone.ID)
+					logger.AppLogger.Error(err.Error())
 				}
 			}
 		}

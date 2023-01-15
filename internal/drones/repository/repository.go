@@ -113,3 +113,37 @@ func (r *repository) DeleteById(context context.Context, id string) (*model.Dron
 
 	return r.Update(context, &drone)
 }
+
+func (r *repository) DeletePermanentlyById(context context.Context, id string) (*model.Drone, error) {
+	drone := model.Drone{ID: id}
+	result := r.db.Take(&drone)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	result = r.db.Delete(drone)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &drone, nil
+}
+
+func (r *repository) GetAllDeleted(context context.Context) ([]*model.Drone, error) {
+	var drones []model.Drone
+	result := r.db.Where("deleted_at is not null").Find(&drones)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	dronesPtr := make([]*model.Drone, len(drones))
+
+	for i, _ := range drones {
+		dronesPtr[i] = &drones[i]
+	}
+
+	return dronesPtr, nil
+}
