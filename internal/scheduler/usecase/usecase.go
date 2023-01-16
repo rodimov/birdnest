@@ -2,8 +2,11 @@ package usecase
 
 import (
 	dronesPackage "birdnest/internal/drones"
+	dronesDelivery "birdnest/internal/drones/delivery"
 	dronesModel "birdnest/internal/drones/model"
+	"birdnest/internal/events"
 	pilotsPackage "birdnest/internal/pilots"
+	pilotsDelivery "birdnest/internal/pilots/delivery"
 	pilotsModel "birdnest/internal/pilots/model"
 	"birdnest/internal/scheduler"
 	"birdnest/logger"
@@ -60,13 +63,36 @@ type usecase struct {
 	dronesListURL           string
 	pilotsInfoURL           string
 	lastDronesListTimestamp time.Time
+	eventsChan              chan *events.EventMessage
+}
+
+func createNewViolationEvent(pilot *pilotsModel.Pilot) *events.EventMessage {
+	return &events.EventMessage{
+		EventType: "new_violation",
+		Data:      pilotsDelivery.ToPilotDto(pilot),
+	}
+}
+
+func createNewDroneEvent(drone *dronesModel.Drone) *events.EventMessage {
+	return &events.EventMessage{
+		EventType: "new_drone",
+		Data:      dronesDelivery.ToDroneDto(drone),
+	}
+}
+
+func createDeletePilotEvent(pilot *pilotsModel.Pilot) *events.EventMessage {
+	return &events.EventMessage{
+		EventType: "delete_pilot",
+		Data:      pilotsDelivery.ToPilotDto(pilot),
+	}
 }
 
 func NewUseCase(dronesUseCase dronesPackage.UseCase,
 	pilotsUseCase pilotsPackage.UseCase,
 	ndzClearTimeMin int64,
 	dronesListURL string,
-	pilotsInfoURL string) scheduler.UseCase {
+	pilotsInfoURL string,
+	eventsChan chan *events.EventMessage) scheduler.UseCase {
 
 	return &usecase{
 		dronesUseCase:   dronesUseCase,
@@ -74,13 +100,17 @@ func NewUseCase(dronesUseCase dronesPackage.UseCase,
 		ndzClearTimeMin: ndzClearTimeMin,
 		dronesListURL:   dronesListURL,
 		pilotsInfoURL:   pilotsInfoURL,
+		eventsChan:      eventsChan,
 	}
 }
 
 func (u *usecase) StartScheduler() error {
+	go u.updateDronesList()
+
+	time.Sleep(time.Duration(2) * time.Second)
+
 	go u.hardRemoveOldDrones()
 	go u.permanentlyDeleteGarbage()
-	go u.updateDronesList()
 
 	return nil
 }
@@ -166,6 +196,7 @@ func (u *usecase) createDrones(capture *Capture) error {
 		}
 
 		if !isInNDZ(drone.PositionX, drone.PositionY) {
+			u.eventsChan <- createNewDroneEvent(&droneModelItem)
 			continue
 		}
 
@@ -177,7 +208,14 @@ func (u *usecase) createDrones(capture *Capture) error {
 			return err
 		}
 
-		_, err = u.createPilot(&droneModelItem)
+		pilotInfo, err := u.createPilot(&droneModelItem)
+
+		if err == nil {
+			u.eventsChan <- createNewViolationEvent(pilotInfo)
+		} else {
+			logger.AppLogger.Error("Can't send new violation event: no pilot info")
+		}
+
 		u.mutex.Unlock()
 
 		go u.removeDrone(&droneModelItem)
@@ -226,6 +264,14 @@ func (u *usecase) removeDrone(drone *dronesModel.Drone) {
 		if err != nil {
 			logger.AppLogger.Error("Can't delete drone with id = " + drone.ID)
 			logger.AppLogger.Error(err.Error())
+		} else {
+			pilotInfo, err := u.pilotsUseCase.GetByDroneId(ctx, drone.ID)
+
+			if err == nil {
+				u.eventsChan <- createDeletePilotEvent(pilotInfo)
+			} else {
+				logger.AppLogger.Error("Can't send delete pilot event: no pilot info")
+			}
 		}
 	}
 }
@@ -322,6 +368,13 @@ func (u *usecase) hardRemoveOldDrones() {
 					logger.AppLogger.Error(err.Error())
 				} else {
 					logger.AppLogger.Info("Drone with id = " + drone.ID + " was hard removed")
+					pilotInfo, err := u.pilotsUseCase.GetByDroneId(ctx, drone.ID)
+
+					if err == nil {
+						u.eventsChan <- createDeletePilotEvent(pilotInfo)
+					} else {
+						logger.AppLogger.Error("Can't send delete pilot event: no pilot info")
+					}
 				}
 			}
 		}

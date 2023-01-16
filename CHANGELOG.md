@@ -1,6 +1,8 @@
 # Changelog
 
-
+## [0.1.1]  - 2023-01-16
+### Added
+- Server-side events API
 
 ## [0.1.0] - 2023-01-15
 ### Added

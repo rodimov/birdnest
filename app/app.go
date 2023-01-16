@@ -4,6 +4,7 @@ import (
 	dronesDelivery "birdnest/internal/drones/delivery"
 	dronesRepo "birdnest/internal/drones/repository"
 	dronesUC "birdnest/internal/drones/usecase"
+	eventManager "birdnest/internal/events/manager"
 	pilotsDelivery "birdnest/internal/pilots/delivery"
 	pilotsRepo "birdnest/internal/pilots/repository"
 	pilotsUC "birdnest/internal/pilots/usecase"
@@ -52,9 +53,11 @@ func NewApp(cfg *Config) (*App, error) {
 	dronesDelivery.DronesRegisterEndPoints(dronesUseCase, router)
 	pilotsDelivery.RegisterEndpoints(pilotsUseCase, router)
 
+	eventsChan := eventManager.StartEventServer(router)
+
 	schedulerUseCase := schedulerUC.NewUseCase(dronesUseCase, pilotsUseCase,
 		10, "https://assignments.reaktor.com/birdnest/drones",
-		"https://assignments.reaktor.com/birdnest/pilots/")
+		"https://assignments.reaktor.com/birdnest/pilots/", eventsChan)
 
 	_ = schedulerUseCase.StartScheduler()
 
