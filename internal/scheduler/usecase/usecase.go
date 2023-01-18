@@ -196,7 +196,7 @@ func (u *usecase) createDrones(capture *Capture) error {
 		}
 
 		if !isInNDZ(drone.PositionX, drone.PositionY) {
-			u.eventsChan <- createNewDroneEvent(&droneModelItem)
+			//u.eventsChan <- createNewDroneEvent(&droneModelItem)
 			continue
 		}
 
@@ -208,13 +208,13 @@ func (u *usecase) createDrones(capture *Capture) error {
 			return err
 		}
 
-		pilotInfo, err := u.createPilot(&droneModelItem)
-
-		if err == nil {
-			u.eventsChan <- createNewViolationEvent(pilotInfo)
-		} else {
-			logger.AppLogger.Error("Can't send new violation event: no pilot info")
-		}
+		//pilotInfo, err := u.createPilot(&droneModelItem)
+		//
+		//if err == nil {
+		//	u.eventsChan <- createNewViolationEvent(pilotInfo)
+		//} else {
+		//	logger.AppLogger.Error("Can't send new violation event: no pilot info")
+		//}
 
 		u.mutex.Unlock()
 
@@ -265,13 +265,13 @@ func (u *usecase) removeDrone(drone *dronesModel.Drone) {
 			logger.AppLogger.Error("Can't delete drone with id = " + drone.ID)
 			logger.AppLogger.Error(err.Error())
 		} else {
-			pilotInfo, err := u.pilotsUseCase.GetByDroneId(ctx, drone.ID)
-
-			if err == nil {
-				u.eventsChan <- createDeletePilotEvent(pilotInfo)
-			} else {
-				logger.AppLogger.Error("Can't send delete pilot event: no pilot info")
-			}
+			//pilotInfo, err := u.pilotsUseCase.GetByDroneId(ctx, drone.ID)
+			//
+			//if err == nil {
+			//	u.eventsChan <- createDeletePilotEvent(pilotInfo)
+			//} else {
+			//	logger.AppLogger.Error("Can't send delete pilot event: no pilot info")
+			//}
 		}
 	}
 }
@@ -368,13 +368,13 @@ func (u *usecase) hardRemoveOldDrones() {
 					logger.AppLogger.Error(err.Error())
 				} else {
 					logger.AppLogger.Info("Drone with id = " + drone.ID + " was hard removed")
-					pilotInfo, err := u.pilotsUseCase.GetByDroneId(ctx, drone.ID)
-
-					if err == nil {
-						u.eventsChan <- createDeletePilotEvent(pilotInfo)
-					} else {
-						logger.AppLogger.Error("Can't send delete pilot event: no pilot info")
-					}
+					//pilotInfo, err := u.pilotsUseCase.GetByDroneId(ctx, drone.ID)
+					//
+					//if err == nil {
+					//	u.eventsChan <- createDeletePilotEvent(pilotInfo)
+					//} else {
+					//	logger.AppLogger.Error("Can't send delete pilot event: no pilot info")
+					//}
 				}
 			}
 		}

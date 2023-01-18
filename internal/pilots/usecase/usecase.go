@@ -4,6 +4,7 @@ import (
 	dronesPkg "birdnest/internal/drones"
 	"birdnest/internal/pilots"
 	"birdnest/internal/pilots/model"
+	"birdnest/logger"
 	"context"
 )
 
@@ -55,7 +56,12 @@ func (u *usecase) GetAll(context context.Context) ([]*model.Pilot, error) {
 		pilot, err := u.GetByDroneId(context, drone.ID)
 
 		if err != nil {
-			return nil, err
+			logger.AppLogger.Error("Can't find pilot with drone id - " + err.Error())
+			pilot = &model.Pilot{
+				ID:      drone.ID,
+				DroneID: drone.ID,
+				Drone:   drone,
+			}
 		}
 
 		pilotsSlice = append(pilotsSlice, pilot)
