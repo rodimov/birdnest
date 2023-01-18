@@ -209,12 +209,13 @@ func (u *usecase) createDrones(capture *Capture) error {
 		}
 
 		//pilotInfo, err := u.createPilot(&droneModelItem)
-		//
-		//if err == nil {
-		//	u.eventsChan <- createNewViolationEvent(pilotInfo)
-		//} else {
-		//	logger.AppLogger.Error("Can't send new violation event: no pilot info")
-		//}
+		_, err := u.createPilot(&droneModelItem)
+
+		if err == nil {
+			//u.eventsChan <- createNewViolationEvent(pilotInfo)
+		} else {
+			logger.AppLogger.Error("Can't send new violation event: no pilot info")
+		}
 
 		u.mutex.Unlock()
 
