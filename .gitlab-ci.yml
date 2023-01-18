@@ -95,9 +95,9 @@ deploy:
       docker update --restart-policy no birdnest || true &&
       docker stop birdnest || true && docker rm birdnest || true &&
       docker pull $IMAGE_NAME:$IMAGE_TAG &&
-      docker network create --subnet 172.20.0.0/16 birdnest-net || true &&
-      docker run --name birdnest-db --restart always --net birdnest-net --ip 172.20.0.5 -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=postgres -d postgres:15 || true &&
-      docker run --name birdnest --restart always --network birdnest-net -e DBHOST=172.20.0.5 -p 8080:8080 -d $IMAGE_NAME:$IMAGE_TAG"
+      docker network create --subnet 172.21.0.0/16 birdnest-net || true &&
+      docker run --name birdnest-db --restart always --net birdnest-net --ip 172.21.0.5 -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=postgres -d postgres:15 || true &&
+      docker run --name birdnest --restart always --network birdnest-net -e DBHOST=172.21.0.5 -p 3001:3001 -d $IMAGE_NAME:$IMAGE_TAG"
     - sleep 30
     - apk update && apk add curl
     - curl --fail-with-body http://$SERVER_IP:8080/swagger/index.html
