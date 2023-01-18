@@ -18,8 +18,8 @@ type Manager struct {
 func StartEventServer(router *gin.Engine) chan *events.EventMessage {
 	manager := newManager()
 
-	g := router.Group("/api/events")
-	g.GET("", headersMiddleware(), manager.getClientConnectionHandler(), handleEventSending)
+	//g := router.Group("/api/events")
+	//g.GET("", headersMiddleware(), manager.getClientConnectionHandler(), handleEventSending)
 
 	return manager.Message
 }
