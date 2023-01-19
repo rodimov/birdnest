@@ -6,16 +6,23 @@ const useAPI = (url: string) => {
     const [data, setData] = useState<any>(null);
 
     useEffect(() => {
-        setInterval(() => {
-            fetch(url)
-                .then((response) => {
-                    return response.json();
-                })
-                .then((json) => {
-                    setLoading(false);
-                    setData(json);
-                });
-        }, 10000);
+        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+        const fetchData = async () => {
+            while (true) {
+                await fetch(url)
+                    .then((response) => {
+                        return response.json();
+                    })
+                    .then((json) => {
+                        setLoading(false);
+                        setData(json);
+                    });
+                await sleep(2000)
+            }
+        }
+
+        fetchData()
     }, [url]);
 
     return { loading, data };
