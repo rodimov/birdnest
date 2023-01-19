@@ -90,7 +90,7 @@ export const headCells: readonly HeadCell[] = [
         id: 'distance',
         dataType: TableDataType.Number,
         disablePadding: false,
-        label: 'Distance',
+        label: 'Closest distance',
     },
 ];
 

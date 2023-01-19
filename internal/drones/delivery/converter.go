@@ -3,15 +3,8 @@ package delivery
 import (
 	"birdnest/internal/drones/delivery/dto"
 	"birdnest/internal/drones/model"
-	"math"
+	"birdnest/pkg"
 )
-
-func getDistance(x float64, y float64) int64 {
-	const XC float64 = 250000
-	const YC float64 = 250000
-
-	return int64(math.Round(math.Sqrt(math.Pow(x-XC, 2) + math.Pow(y-YC, 2))))
-}
 
 func ToDroneDto(from *model.Drone) *dto.DroneDto {
 	target := &dto.DroneDto{
@@ -19,7 +12,7 @@ func ToDroneDto(from *model.Drone) *dto.DroneDto {
 		PositionX: from.PositionX,
 		PositionY: from.PositionY,
 		LastSeen:  from.LastSeen,
-		Distance:  getDistance(from.PositionX, from.PositionY),
+		Distance:  pkg.GetDroneDistance(from.PositionX, from.PositionY),
 	}
 
 	return target
@@ -34,7 +27,7 @@ func ToDronesDto(from []*model.Drone) []*dto.DroneDto {
 			PositionX: drone.PositionX,
 			PositionY: drone.PositionY,
 			LastSeen:  drone.LastSeen,
-			Distance:  getDistance(drone.PositionX, drone.PositionY),
+			Distance:  pkg.GetDroneDistance(drone.PositionX, drone.PositionY),
 		}
 
 		target = append(target, droneDto)

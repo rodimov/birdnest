@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"database/sql"
+	"math"
 	"time"
 )
 
@@ -43,4 +44,11 @@ func NullTimeToString(value sql.NullTime) string {
 	}
 
 	return value.Time.Format(time.RFC3339)
+}
+
+func GetDroneDistance(x float64, y float64) int64 {
+	const XC float64 = 250000
+	const YC float64 = 250000
+
+	return int64(math.Round(math.Sqrt(math.Pow(x-XC, 2) + math.Pow(y-YC, 2))))
 }

@@ -3,6 +3,7 @@ package usecase
 import (
 	dr "birdnest/internal/drones"
 	"birdnest/internal/drones/model"
+	"birdnest/pkg"
 	"context"
 )
 
@@ -22,6 +23,20 @@ func (u *usecase) Create(context context.Context, drone *model.Drone) (*model.Dr
 	}
 
 	if isDroneExists {
+		storedDrone, err := u.Repository.GetById(context, drone.ID)
+
+		if err != nil {
+			return nil, err
+		}
+
+		newPositionDistance := pkg.GetDroneDistance(drone.PositionX, drone.PositionY)
+		oldPositionDistance := pkg.GetDroneDistance(storedDrone.PositionX, storedDrone.PositionY)
+
+		if oldPositionDistance < newPositionDistance {
+			drone.PositionX = storedDrone.PositionX
+			drone.PositionY = storedDrone.PositionY
+		}
+
 		_, err = u.Repository.Update(context, drone)
 
 		if err != nil {

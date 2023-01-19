@@ -201,7 +201,7 @@ func (u *usecase) createDrones(capture *Capture) error {
 		}
 
 		u.mutex.Lock()
-		_, err = u.dronesUseCase.Create(ctx, &droneModelItem)
+		createdDrone, err := u.dronesUseCase.Create(ctx, &droneModelItem)
 
 		if err != nil {
 			u.mutex.Unlock()
@@ -209,7 +209,7 @@ func (u *usecase) createDrones(capture *Capture) error {
 		}
 
 		//pilotInfo, err := u.createPilot(&droneModelItem)
-		_, err := u.createPilot(&droneModelItem)
+		_, err = u.createPilot(createdDrone)
 
 		if err == nil {
 			//u.eventsChan <- createNewViolationEvent(pilotInfo)
@@ -219,7 +219,7 @@ func (u *usecase) createDrones(capture *Capture) error {
 
 		u.mutex.Unlock()
 
-		go u.removeDrone(&droneModelItem)
+		go u.removeDrone(createdDrone)
 	}
 
 	return nil
